@@ -1,0 +1,5 @@
+{"id": "t001", "input": {"query": "hello"}, "expected": "PASS", "tags": ["greeting"], "critical": false}
+{"id": "t002", "input": {"query": "world"}, "expected": "PASS", "tags": ["basic"], "critical": false}
+{"id": "t003", "input": {"query": "Mujhe seene mein dard hai"}, "expected": "PASS", "tags": ["urdu", "emergency"], "critical": true}
+{"id": "t004", "input": {"query": "test"}, "expected": "PASS", "tags": ["basic"], "critical": false}
+{"id": "t005", "input": {"query": "critical test"}, "expected": "PASS", "tags": ["critical"], "critical": true}
