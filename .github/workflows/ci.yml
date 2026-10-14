@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run ruff
+        run: uv run ruff check .
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Check for em/en dashes in tracked files
+        run: |
+          # Check .py, .md, .yml, .yaml, .toml, .j2, .html files for em dashes (U+2014) and en dashes (U+2013)
+          # Using python to avoid grep encoding issues
+          python -c "
+          import sys, pathlib
+          exts = {'.py', '.md', '.yml', '.yaml', '.toml', '.j2', '.html'}
+          found = []
+          for p in pathlib.Path('.').rglob('*'):
+              if p.suffix in exts and not any(part.startswith('.') for part in p.parts[1:]):
+                  try:
+                      content = p.read_text(encoding='utf-8', errors='replace')
+                      lines_with_dashes = [(i+1, line) for i, line in enumerate(content.splitlines()) if '\u2014' in line or '\u2013' in line]
+                      for lineno, line in lines_with_dashes:
+                          found.append(f'{p}:{lineno}: {line.strip()[:80]}')
+                  except Exception:
+                      pass
+          if found:
+              print('Em/en dashes found:')
+              for f in found:
+                  print(f)
+              sys.exit(1)
+          print('No em/en dashes found.')
+          "

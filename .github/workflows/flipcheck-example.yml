@@ -1,0 +1,44 @@
+name: FlipCheck Example
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  flipcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install FlipCheck
+        run: uv sync
+
+      - name: Initialize FlipCheck config
+        run: uv run flipcheck init
+
+      - name: Run FlipCheck comparison
+        run: uv run flipcheck ci
+        # The mock target requires no API keys.
+        # To use a real model, add your API key as a repository secret:
+        #   For Gemini: add GEMINI_API_KEY to repository secrets
+        #   For Groq: add GROQ_API_KEY to repository secrets
+        # Then set:
+        # env:
+        #   GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        #   GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+      - name: Upload FlipCheck report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flipcheck-report
+          path: reports/
+          if-no-files-found: ignore
