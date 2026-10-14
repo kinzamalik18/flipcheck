@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flipcheck"
+version = "0.0.1"
+description = "Regression testing for LLM apps: find what got worse, separate real regressions from noise, and get a ship or block verdict."
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.9",
+    "rich>=13",
+    "pydantic>=2",
+    "litellm>=1.30",
+    "httpx>=0.27",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "jinja2>=3.1",
+    "jsonschema>=4.21",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+semantic = [
+    "sentence-transformers>=3.0",
+]
+
+[project.scripts]
+flipcheck = "flipcheck.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["flipcheck"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "slow: simulation tests (run with -m slow)",
+    "live: tests that require a real model or network (skipped by default)",
+]
+addopts = "-m 'not live'"
