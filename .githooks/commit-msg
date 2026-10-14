@@ -1,0 +1,23 @@
+#!/bin/sh
+# Removes AI attribution lines from every commit message, then blocks the
+# commit if any remain. Installed with: git config core.hooksPath .githooks
+MSG_FILE="$1"
+TMP="$MSG_FILE.tmp"
+
+grep -viE 'co-authored-by:.*(claude|anthropic)|noreply@anthropic\.com|generated with \[?claude code|claude\.ai/code|claude-session:' "$MSG_FILE" > "$TMP"
+mv "$TMP" "$MSG_FILE"
+
+# Trim trailing blank lines left behind by the removal.
+printf '%s\n' "$(cat "$MSG_FILE")" > "$TMP" && mv "$TMP" "$MSG_FILE"
+
+if grep -qiE 'claude|anthropic' "$MSG_FILE"; then
+  echo "commit-msg hook: the message still mentions Claude or Anthropic. Edit it and commit again." >&2
+  exit 1
+fi
+
+EM=$(printf '\342\200\224'); EN=$(printf '\342\200\223')
+if grep -q -e "$EM" -e "$EN" "$MSG_FILE"; then
+  echo "commit-msg hook: the message contains an em or en dash. Replace it and commit again." >&2
+  exit 1
+fi
+exit 0
