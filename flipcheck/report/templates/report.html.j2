@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlipCheck Report: {{ run_id }}</title>
+<style>
+/* ---- Reset and base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --border: #dee2e6;
+  --text: #212529;
+  --text-muted: #6c757d;
+  --green: #198754;
+  --green-bg: #d1e7dd;
+  --orange: #fd7e14;
+  --orange-bg: #fff3cd;
+  --red: #dc3545;
+  --red-bg: #f8d7da;
+  --blue: #0d6efd;
+  --blue-bg: #cfe2ff;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --radius: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1d21;
+    --surface: #25282d;
+    --border: #3d4147;
+    --text: #e9ecef;
+    --text-muted: #9ca3af;
+    --green: #75b798;
+    --green-bg: #0a3622;
+    --orange: #ffc078;
+    --orange-bg: #3d2909;
+    --red: #ea868f;
+    --red-bg: #3b0d12;
+    --blue: #6ea8fe;
+    --blue-bg: #031633;
+  }
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+a { color: var(--blue); }
+
+/* ---- Layout ---- */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 28px 0 12px; }
+h3 { font-size: 1rem; font-weight: 600; margin: 16px 0 8px; }
+
+/* ---- Verdict banner ---- */
+.verdict-banner {
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.verdict-banner.green  { background: var(--green-bg);  border-left: 6px solid var(--green); }
+.verdict-banner.orange { background: var(--orange-bg); border-left: 6px solid var(--orange); }
+.verdict-banner.red    { background: var(--red-bg);    border-left: 6px solid var(--red); }
+
+.verdict-label {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.verdict-banner.green  .verdict-label { color: var(--green); }
+.verdict-banner.orange .verdict-label { color: var(--orange); }
+.verdict-banner.red    .verdict-label { color: var(--red); }
+
+.verdict-reasons { flex: 1; }
+.verdict-reasons ul { margin: 6px 0 0 16px; }
+.verdict-reasons li { margin-bottom: 4px; }
+
+/* ---- Cards and tables ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.stat-item { text-align: center; }
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.stat-value.positive { color: var(--green); }
+.stat-value.negative { color: var(--red); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(128,128,128,0.04); }
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.badge-red    { background: var(--red-bg);    color: var(--red); }
+.badge-green  { background: var(--green-bg);  color: var(--green); }
+.badge-orange { background: var(--orange-bg); color: var(--orange); }
+.badge-blue   { background: var(--blue-bg);   color: var(--blue); }
+.badge-muted  { background: var(--border);    color: var(--text-muted); }
+
+.delta-neg { color: var(--red);   font-weight: 600; }
+.delta-pos { color: var(--green); font-weight: 600; }
+.delta-neu { color: var(--text-muted); }
+
+.low-conf { font-style: italic; opacity: 0.75; }
+.low-conf-note { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ---- Regression detail ---- */
+.regression-case {
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.regression-header {
+  background: var(--red-bg);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.regression-body { padding: 16px; }
+
+.side-by-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+.side-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.output-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.input-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 10px;
+}
+
+.pass-mark { color: var(--green); font-weight: 700; }
+.fail-mark { color: var(--red);   font-weight: 700; }
+
+/* ---- Details/summary collapsible ---- */
+details {
+  margin-bottom: 16px;
+}
+details > summary {
+  cursor: pointer;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before {
+  content: "▶";
+  font-size: 0.75rem;
+  transition: transform 0.15s;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details > summary:hover { background: var(--bg); }
+details > .details-body {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: 16px;
+  background: var(--surface);
+}
+
+/* ---- Metadata ---- */
+.meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.meta-key { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 2px; }
+.meta-val { font-family: var(--mono); font-size: 0.85rem; word-break: break-all; }
+
+/* ---- Print ---- */
+@media print {
+  body { background: white; color: black; font-size: 12pt; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+  details { display: block; }
+  details > summary::before { display: none; }
+  .output-box, .input-box { max-height: none; overflow: visible; }
+}
+
+/* ---- Utility ---- */
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 32px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
+}
+.empty-note {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ================================================================
+       Section 1: Verdict banner
+  ================================================================ -->
+  <div class="verdict-banner {{ verdict_color }}">
+    <div class="verdict-label">{{ verdict.level.value | upper }}</div>
+    <div class="verdict-reasons">
+      {% if verdict.reasons %}
+        <strong>Reasons:</strong>
+        <ul>
+          {% for r in verdict.reasons %}
+            <li>
+              <span class="badge {% if r.level.value == 'block' %}badge-red{% elif r.level.value == 'ship_with_caveats' %}badge-orange{% else %}badge-green{% endif %}">
+                {{ r.level.value | upper }}
+              </span>
+              {{ r.message }}
+              {% if r.case_ids %}
+                <span class="badge badge-muted">{{ r.case_ids | length }} case(s)</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <span>No issues found. The candidate version looks safe to ship.</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 24px;">
+    Run ID: <code>{{ run_id }}</code>
+  </p>
+
+  <!-- ================================================================
+       Section 2: Key numbers
+  ================================================================ -->
+  <div class="section-title">Key Numbers</div>
+  <div class="card">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value">{{ "%.1f"|format(summary.base_rate * 100) }}%</div>
+        <div class="stat-label">Base pass rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value {% if summary.cand_rate > summary.base_rate %}positive{% elif summary.cand_rate < summary.base_rate %}negative{% endif %}">
+          {{ "%.1f"|format(summary.cand_rate * 100) }}%
+        </div>
+        <div class="stat-label">Candidate pass rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value {% if summary.delta > 0 %}positive{% elif summary.delta < 0 %}negative{% endif %}">
+          {{ "%+.1f"|format(summary.delta * 100) }}%
+        </div>
+        <div class="stat-label">
+          Delta
+          <br>
+          <span style="font-size: 0.72rem; font-weight: 400;">
+            95% CI: [{{ "%.1f"|format(summary.delta_ci[0] * 100) }}%, {{ "%.1f"|format(summary.delta_ci[1] * 100) }}%]
+          </span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value {% if summary.reliable_nfr > 0 %}negative{% endif %}">
+          {{ "%.1f"|format(summary.reliable_nfr * 100) }}%
+        </div>
+        <div class="stat-label">Reliable NFR</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ "%.1f"|format(summary.churn_rate * 100) }}%</div>
+        <div class="stat-label">Churn rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value {% if summary.flaky_rate > 0.15 %}negative{% endif %}">
+          {{ "%.1f"|format(summary.flaky_rate * 100) }}%
+        </div>
+        <div class="stat-label">Flaky rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ summary.calls_used }}</div>
+        <div class="stat-label">Calls used</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">
+          {% if summary.est_cost_usd is not none %}
+            ${{ "%.4f"|format(summary.est_cost_usd) }}
+          {% else %}
+            N/A
+          {% endif %}
+        </div>
+        <div class="stat-label">Est. cost (USD)</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ summary.n_items }}</div>
+        <div class="stat-label">Total items</div>
+      </div>
+      {% if summary.mcnemar_p is not none %}
+      <div class="stat-item">
+        <div class="stat-value">{{ "%.3f"|format(summary.mcnemar_p) }}</div>
+        <div class="stat-label">McNemar p-value</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ================================================================
+       Section 3: Slice table
+  ================================================================ -->
+  {% if summary.slices %}
+  <div class="section-title">Slices</div>
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Tag</th>
+          <th>Items</th>
+          <th>Base rate</th>
+          <th>Cand rate</th>
+          <th>Delta</th>
+          <th>Regressions</th>
+          <th>Improvements</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sl in summary.slices | sort(attribute='delta') %}
+        <tr {% if sl.low_confidence %}class="low-conf"{% endif %}>
+          <td><strong>{{ sl.tag }}</strong></td>
+          <td>{{ sl.n_items }}</td>
+          <td>{{ "%.1f"|format(sl.base_rate * 100) }}%</td>
+          <td>{{ "%.1f"|format(sl.cand_rate * 100) }}%</td>
+          <td class="{% if sl.delta < 0 %}delta-neg{% elif sl.delta > 0 %}delta-pos{% else %}delta-neu{% endif %}">
+            {{ "%+.1f"|format(sl.delta * 100) }}%
+          </td>
+          <td>
+            {% if sl.regressions > 0 %}
+              <span class="badge badge-red">{{ sl.regressions }}</span>
+            {% else %}
+              0
+            {% endif %}
+          </td>
+          <td>
+            {% if sl.improvements > 0 %}
+              <span class="badge badge-green">{{ sl.improvements }}</span>
+            {% else %}
+              0
+            {% endif %}
+          </td>
+          <td>
+            {% if sl.low_confidence %}
+              <span class="badge badge-orange" title="Fewer than 10 items in this slice">Low</span>
+            {% else %}
+              <span class="badge badge-green">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="low-conf-note" style="padding: 8px 16px;">
+      Italic rows have fewer than 10 items (low confidence). Low-confidence slices are marked.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ================================================================
+       Section 4: Reliable regressions
+  ================================================================ -->
+  <div class="section-title">Reliable Regressions ({{ regressions | length }})</div>
+  {% if regressions %}
+    {% for item in regressions %}
+    {% set case = cases.get(item.counts.case_id) %}
+    <div class="regression-case">
+      <div class="regression-header">
+        <span class="badge badge-red">REGRESSION</span>
+        <span>{{ item.counts.case_id }}</span>
+        {% if item.p_regression is not none %}
+          <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">
+            p = {{ "%.4f"|format(item.p_regression) }}
+          </span>
+        {% endif %}
+        {% if case and case.critical %}
+          <span class="badge badge-red">CRITICAL</span>
+        {% endif %}
+      </div>
+      <div class="regression-body">
+        {% if case %}
+          <div style="margin-bottom: 10px;">
+            <div class="meta-key">Input</div>
+            <div class="input-box">{{ case.input | tojson(indent=2) }}</div>
+            {% if case.expected is not none %}
+              <div class="meta-key">Expected</div>
+              <div style="font-family: var(--mono); font-size: 0.85rem; padding: 4px 0;">
+                {{ case.expected | tojson }}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+        <div class="side-by-side">
+          <div>
+            <div class="side-label">Baseline</div>
+            <div>
+              <span class="meta-key">Passes: </span>
+              <strong>{{ item.counts.base_pass }} / {{ item.counts.base_n }}</strong>
+            </div>
+            <div class="output-box" style="margin-top: 6px;">
+              base: {{ item.counts.base_pass }} / {{ item.counts.base_n }} passed
+            </div>
+          </div>
+          <div>
+            <div class="side-label">Candidate</div>
+            <div>
+              <span class="meta-key">Passes: </span>
+              <strong>{{ item.counts.cand_pass }} / {{ item.counts.cand_n }}</strong>
+            </div>
+            <div class="output-box" style="margin-top: 6px; border-color: var(--red);">
+              cand: {{ item.counts.cand_pass }} / {{ item.counts.cand_n }} passed
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p class="empty-note">No reliable regressions detected.</p>
+    </div>
+  {% endif %}
+
+  <!-- ================================================================
+       Section 5: Flaky and inconclusive items (collapsed)
+  ================================================================ -->
+  <div class="section-title">Flaky and Inconclusive Items</div>
+  <details>
+    <summary>
+      <span>Flaky ({{ flaky | length }}) and Inconclusive ({{ inconclusive | length }}) items</span>
+    </summary>
+    <div class="details-body">
+      {% if flaky or inconclusive %}
+        <table>
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Status</th>
+              <th>Base passes</th>
+              <th>Cand passes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in flaky %}
+            <tr>
+              <td>{{ item.counts.case_id }}</td>
+              <td><span class="badge badge-orange">FLAKY</span></td>
+              <td>{{ item.counts.base_pass }} / {{ item.counts.base_n }}</td>
+              <td>{{ item.counts.cand_pass }} / {{ item.counts.cand_n }}</td>
+            </tr>
+            {% endfor %}
+            {% for item in inconclusive %}
+            <tr>
+              <td>{{ item.counts.case_id }}</td>
+              <td><span class="badge badge-muted">INCONCLUSIVE</span></td>
+              <td>{{ item.counts.base_pass }} / {{ item.counts.base_n }}</td>
+              <td>{{ item.counts.cand_pass }} / {{ item.counts.cand_n }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-note">No flaky or inconclusive items.</p>
+      {% endif %}
+    </div>
+  </details>
+
+  <!-- ================================================================
+       Section 6: Reliable improvements (collapsed)
+  ================================================================ -->
+  <div class="section-title">Reliable Improvements</div>
+  <details>
+    <summary>
+      <span>Reliable improvements ({{ improvements | length }})</span>
+    </summary>
+    <div class="details-body">
+      {% if improvements %}
+        <table>
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Base passes</th>
+              <th>Cand passes</th>
+              <th>p (improvement)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in improvements %}
+            <tr>
+              <td>{{ item.counts.case_id }}</td>
+              <td>{{ item.counts.base_pass }} / {{ item.counts.base_n }}</td>
+              <td>{{ item.counts.cand_pass }} / {{ item.counts.cand_n }}</td>
+              <td>
+                {% if item.p_improvement is not none %}
+                  {{ "%.4f"|format(item.p_improvement) }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="empty-note">No reliable improvements detected.</p>
+      {% endif %}
+    </div>
+  </details>
+
+  <!-- ================================================================
+       Section 7: Run metadata
+  ================================================================ -->
+  <div class="section-title">Run Metadata</div>
+  <div class="card">
+    <div class="meta-grid">
+      <div>
+        <div class="meta-key">Run ID</div>
+        <div class="meta-val">{{ run_id }}</div>
+      </div>
+      <div>
+        <div class="meta-key">Total items</div>
+        <div class="meta-val">{{ summary.n_items }}</div>
+      </div>
+      <div>
+        <div class="meta-key">Calls used</div>
+        <div class="meta-val">{{ summary.calls_used }}</div>
+      </div>
+      <div>
+        <div class="meta-key">Estimated cost</div>
+        <div class="meta-val">
+          {% if summary.est_cost_usd is not none %}
+            ${{ "%.4f"|format(summary.est_cost_usd) }} USD
+          {% else %}
+            Not available
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="meta-key">McNemar p-value</div>
+        <div class="meta-val">
+          {% if summary.mcnemar_p is not none %}
+            {{ "%.4f"|format(summary.mcnemar_p) }}
+          {% else %}
+            N/A
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div class="meta-key">NFR (single-shot)</div>
+        <div class="meta-val">{{ "%.1f"|format(summary.nfr_single_shot * 100) }}%</div>
+      </div>
+      <div>
+        <div class="meta-key">NFR (conditional)</div>
+        <div class="meta-val">{{ "%.1f"|format(summary.nfr_single_shot_conditional * 100) }}%</div>
+      </div>
+      <div>
+        <div class="meta-key">Inconclusive rate</div>
+        <div class="meta-val">{{ "%.1f"|format(summary.inconclusive_rate * 100) }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 24px; text-align: center;">
+    FlipCheck report for run <code>{{ run_id }}</code>.
+    This file is self-contained and works offline.
+  </p>
+
+</div>
+
+<script>
+/* No external dependencies. Toggle logic is handled natively by the details element. */
+(function() {
+  /* Restore open/closed state from sessionStorage so reloads keep the same view. */
+  var details = document.querySelectorAll('details');
+  details.forEach(function(el, idx) {
+    var key = 'flipcheck-details-' + idx;
+    var saved = sessionStorage.getItem(key);
+    if (saved === 'open') { el.open = true; }
+    el.addEventListener('toggle', function() {
+      sessionStorage.setItem(key, el.open ? 'open' : 'closed');
+    });
+  });
+})();
+</script>
+</body>
+</html>
