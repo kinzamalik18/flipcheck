@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import csv
 import json
+from pathlib import Path
 
 import pytest
 import yaml
@@ -20,7 +21,7 @@ if not hasattr(_suite_mod, "load_suite"):
 load_suite = _suite_mod.load_suite
 import_from_logs = _suite_mod.import_from_logs
 
-FIXTURES_DIR = "C:/Users/HP/Documents/flipcheck/tests/fixtures"
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 
 
 # ---------------------------------------------------------------------------
@@ -29,41 +30,41 @@ FIXTURES_DIR = "C:/Users/HP/Documents/flipcheck/tests/fixtures"
 
 
 def test_load_jsonl_returns_list_of_test_cases():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     assert all(isinstance(c, TestCase) for c in cases)
 
 
 def test_load_jsonl_returns_five_cases():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     assert len(cases) == 5
 
 
 def test_load_jsonl_first_case_id():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     assert cases[0].id == "t001"
 
 
 def test_load_jsonl_critical_flag():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     # t003 is marked critical in the fixture
     by_id = {c.id: c for c in cases}
     assert by_id["t003"].critical is True
 
 
 def test_load_jsonl_tags_populated():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     by_id = {c.id: c for c in cases}
     assert "urdu" in by_id["t003"].tags
     assert "emergency" in by_id["t003"].tags
 
 
 def test_load_jsonl_expected_value():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     assert cases[0].expected == "PASS"
 
 
 def test_load_jsonl_input_is_dict():
-    cases = load_suite(f"{FIXTURES_DIR}/small.jsonl")
+    cases = load_suite(str(FIXTURES_DIR / "small.jsonl"))
     assert isinstance(cases[0].input, dict)
 
 
